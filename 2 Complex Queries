@@ -1,0 +1,34 @@
+## Most popular provider type grouped by state?
+## Return: state, provider type, count of provider type per state
+
+WITH state_provider_types (address_id, state, provider_type_id, provider_type) AS (
+SELECT A.address_id, A.state, Pr.provider_type_id, P.provider_type
+FROM provider_addresses A
+JOIN  providers Pr
+ON A.address_id = Pr.address_id
+JOIN provider_types P
+ON Pr.provider_type_id = P.provider_type_id)
+SELECT state, provider_type, COUNT(*) AS amount
+FROM state_provider_types
+GROUP BY state, provider_type
+ORDER BY amount DESC;
+
+
+## What is the average percentage of costs that medicare covers on medical bills by state and provider type?
+
+WITH charges_covered (medical_payment_id, npi, medicare_allowed, medicare_payment, address_id, state, provider_type_id, provider_type) AS (
+SELECT M.medical_payment_id, M.npi, M.medicare_allowed, M.medicare_payment, A.address_id, A.state, Pr.provider_type_id, P.provider_type,
+ TRUNC((medicare_payment/ medicare_allowed) * 100) AS percent_covered
+FROM medical_payment M
+JOIN providers Pr
+ON M.npi = Pr.npi
+JOIN provider_addresses A
+ON A.address_id = Pr.address_id
+JOIN provider_types P
+ON Pr.provider_type_id = P.provider_type_id)
+SELECT state, provider_type, TRUNC(AVG(percent_covered)) AS avg_percent_covered
+FROM charges_covered
+WHERE percent_covered IS NOT NULL
+AND medicare_allowed IS NOT NULL
+GROUP BY state, provider_type
+ORDER BY state, avg_percent_covered DESC;
